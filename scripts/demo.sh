@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Run the app on a synthetic year of data. Needs Docker; Node 20+ only if the frontend
-# has not been built yet. Nothing here touches a real database.
+# Run the app on a synthetic year of data. Needs only Docker: the frontend is built with
+# the local npm if there is one, else in a node:20 container. Nothing here touches a real
+# database.
 #
 #   scripts/demo.sh             build, seed (~1.5 min), then serve on http://localhost:8093
 #   PORT=9000 scripts/demo.sh   serve on another port
@@ -14,9 +15,17 @@ PORT=${PORT:-8093}
 IMAGE=wellness-app-demo
 
 if [[ ! -f backend/static/index.html ]]; then
-  echo "Building the frontend…"
-  npm --prefix frontend ci --silent
-  npm --prefix frontend run build --silent
+  if command -v npm >/dev/null; then
+    echo "Building the frontend…"
+    npm --prefix frontend ci --silent
+    npm --prefix frontend run build --silent
+  else
+    # No Node on this machine: build in a throwaway Node container instead.
+    echo "Building the frontend (in a node:20 container)…"
+    docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -e npm_config_cache=/tmp/.npm \
+      -v "$PWD:/w" -w /w/frontend node:20-slim \
+      sh -c 'npm ci --silent --no-audit --no-fund && npm run build --silent'
+  fi
 fi
 echo "Building the image…"
 docker build -q -t "$IMAGE" backend >/dev/null

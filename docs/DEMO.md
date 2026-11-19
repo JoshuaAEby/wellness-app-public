@@ -1,8 +1,8 @@
 # Demo data: a synthetic year with planted ground truth
 
 `scripts/demo.sh` builds a database for a made-up user and serves the app on it. Sign in as
-`owner` with password `demo-password`. It needs Docker, and Node 20+ only if the frontend has
-not been built.
+`owner` with password `demo-password`. It needs only Docker: without a local Node, the
+frontend is built in a `node:20` container.
 
 ![Today](img/today.jpg) ![Findings](img/findings.jpg)
 
