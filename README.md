@@ -139,3 +139,9 @@ cd frontend && npm run lint && npm test && npm run build && node scripts/bootche
 
 CI runs both on every push. Check date logic with `TZ=UTC npm test` too: a test that passes
 in the evening on a laptop can fail on a UTC runner after midnight.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The vendored Biome parser in `scripts/vendor/ccl_segb/` keeps its
+own MIT license and copyright ([ccl_segb_LICENSE.txt](scripts/vendor/ccl_segb_LICENSE.txt)).
+This is a personal project, not a medical device: nothing it computes is medical advice.
