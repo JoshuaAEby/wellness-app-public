@@ -43,3 +43,6 @@ frontend/.rd_fixture.json
 # captured /api/nutrition/recent payload, which is real food-log data.
 frontend/devharness.html
 frontend/devharness/
+
+# Local databases and demo output (scripts/demo.sh)
+backend/data/

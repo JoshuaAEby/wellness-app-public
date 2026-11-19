@@ -13,7 +13,8 @@ engineering: how the numbers are measured, checked and kept from lying.
 8 minutes). Short on time, read cases 1, 2 and 4: a model rationalising a coin flip, testing
 whether a measure is reliable enough to act on, and a placebo test for confounding. The
 pre-registered plan in [docs/READINESS_REFIT.md](docs/READINESS_REFIT.md) shows the same
-habits applied before the data are seen.
+habits applied before the data are seen, and [docs/DEMO.md](docs/DEMO.md) tests the
+correlation engine against a synthetic year with known answers.
 
 ## How it was built
 
@@ -86,7 +87,21 @@ React 18 · Vite · Tailwind · TanStack Query · Recharts — a PWA
 | `frontend/src/` | the React app: Today, Fitness, Body, Insights, Habits tabs |
 | `frontend/scripts/bootcheck.mjs` | loads the production bundle in happy-dom and fails on any uncaught error |
 | `scripts/` | deploy with health check, smoke test and automatic rollback; the macOS screen-time collector |
-| `docs/` | design notes and the engineering case studies |
+| `backend/demo/` | the synthetic person, the seeder and the planted-vs-found report |
+| `docs/` | design notes, the engineering case studies and the demo write-up |
+
+## Try it on synthetic data
+
+```bash
+scripts/demo.sh        # Docker; ~1.5 min to seed, then http://localhost:8093 (owner / demo-password)
+```
+
+This builds a year of a made-up person whose causal structure is known, runs it through the
+real pipeline, and scores the correlation engine against the planted effects: 7 of 8
+recovered, a hidden confounder caught and labelled, and one instructive failure that the
+engine's checks let through. See [docs/DEMO.md](docs/DEMO.md).
+
+<p><img src="docs/img/today.jpg" width="260" alt="Today tab"> <img src="docs/img/findings.jpg" width="260" alt="Findings: ranked levers"></p>
 
 ## Run it
 
@@ -107,7 +122,7 @@ npm run dev                 # proxies /api to localhost:8093
 Sign in as `owner` with `APP_PASSWORD`. The app refuses to start on a missing, default or too
 short secret. Optional settings (Anthropic key, ntfy, Hevy, Home Assistant, weather
 coordinates) are in `backend/app/config.py`; each feature switches itself off when its
-setting is empty. A fresh install has no data; a synthetic demo dataset is planned.
+setting is empty. A fresh install has no data; use the demo above to see it populated.
 
 **Docker:** `docker compose up --build -d` builds the image and runs the migrations on start.
 `scripts/deploy.sh` (set `DEPLOY_HOST` and `DEPLOY_PATH`) lints, tests and builds, checks that
