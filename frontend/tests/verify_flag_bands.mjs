@@ -4,7 +4,9 @@
  * There is no frontend test runner here (backend/tests are standalone scripts too), so
  * this bundles itself through the esbuild that ships with vite. From `frontend/`:
  *
- *   npx esbuild tests/verify_flag_bands.mjs --bundle --platform=node --format=esm \
+ *   npm run verify:flag-bands      (also part of `npm test`, so CI runs it)
+ *
+ * which is:  npx esbuild tests/verify_flag_bands.mjs --bundle --platform=node --format=esm \
  *     --outfile=/tmp/fb.mjs --loader:.jsx=jsx --jsx=automatic && node /tmp/fb.mjs
  *
  * It imports the REAL function rather than a copy, so it cannot drift from shipped code.

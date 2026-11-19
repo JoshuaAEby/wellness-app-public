@@ -194,7 +194,7 @@ class ClassBoard(Base):
     __tablename__ = "class_boards"
 
     id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)          # local date of the class
+    date = Column(Date, nullable=False, index=True)   # local date of the class
     created_at = Column(DateTime, default=datetime.utcnow)
     source = Column(String)                      # "photo" | "text"
     model = Column(String)
@@ -376,6 +376,8 @@ class FoodLog(Base):
     # above stay the record — this is provenance, like my_food_id.
     recipe_id = Column(Integer, index=True)
 
+    __table_args__ = (Index("ix_food_log_source", "source_kind", "source_id"),)
+
 
 class RecipeNutrition(Base):
     """Per-serving nutrition for a household-app recipe (Alembic 0068, note 37).
@@ -389,7 +391,7 @@ class RecipeNutrition(Base):
     __tablename__ = "recipe_nutrition"
 
     id = Column(Integer, primary_key=True)
-    recipe_id = Column(Integer, nullable=False, unique=True, index=True)
+    recipe_id = Column(Integer, nullable=False)
     title = Column(String, nullable=False)
     servings = Column(Float)
     calories = Column(Float)
@@ -415,6 +417,8 @@ class RecipeNutrition(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
+    __table_args__ = (UniqueConstraint("recipe_id", name="uq_recipe_nutrition_recipe_id"),)
+
 
 class FoodParseCache(Base):
     """What was SAVED the last time a given text was typed (2026-09-13, Alembic 0062).
@@ -427,10 +431,12 @@ class FoodParseCache(Base):
     __tablename__ = "food_parse_cache"
 
     id = Column(Integer, primary_key=True)
-    text_key = Column(String, nullable=False, unique=True, index=True)
+    text_key = Column(String, nullable=False)
     items_json = Column(Text, nullable=False)
     hits = Column(Integer, nullable=False, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("text_key", name="uq_food_parse_cache_text_key"),)
 
 
 class MyFood(Base):
@@ -445,7 +451,7 @@ class MyFood(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     brand = Column(String)          # 0070; item_key = food_tags.item_key(name, None, brand)
-    item_key = Column(String, nullable=False, unique=True, index=True)
+    item_key = Column(String, nullable=False)       # unique: uq_my_foods_item_key below
     role = Column(String, nullable=False, default="food")          # food | topping
     meal_type = Column(String)
     serving_label = Column(String)
@@ -474,6 +480,8 @@ class MyFood(Base):
     # follow from serving_qty x servings x abv (services/intake.sdu_from).
     drink_kind = Column(String)
     abv = Column(Float)
+
+    __table_args__ = (UniqueConstraint("item_key", name="uq_my_foods_item_key"),)
 
 
 class MyFoodDismissal(Base):
@@ -514,9 +522,10 @@ class FoodItemTag(Base):
     channel instead of the food; this does not.
     """
     __tablename__ = "food_item_tags"
+    __table_args__ = (Index("ix_food_item_tags_key", "item_key", unique=True),)
 
     id = Column(Integer, primary_key=True)
-    item_key = Column(String, nullable=False, unique=True, index=True)
+    item_key = Column(String, nullable=False)
     display_name = Column(String)
     primary_cat = Column(String)     # one dominant category (retained; nothing reads it now)
     groups = Column(Text)            # JSON array of group slugs (multi-label)
@@ -787,6 +796,7 @@ class ExperimentAssignment(Base):
     arm = Column(String, nullable=False)
     readiness_at_assignment = Column(Float)
     hrv_z_at_assignment = Column(Float)
+    created_at = Column(DateTime)     # in the table since the start; never set by the app
     # Arms are drawn the night before (blind to eligibility — the draw is
     # independent of it); the morning pipeline confirms. Only confirmed rows
     # enter the ITT analysis. None = pending confirmation.
@@ -1273,6 +1283,8 @@ class AppNote(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     resolved_at = Column(DateTime)
 
+    __table_args__ = (Index("ix_app_notes_status", "status", "created_at"),)
+
 
 class VoiceDraft(Base):
     """A spoken log between "here's what I heard" and "Log it" (0071,
@@ -1287,9 +1299,11 @@ class VoiceDraft(Base):
     say = Column(Text, nullable=False)
     created_at = Column(DateTime, nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    committed_at = Column(DateTime, index=True)
+    committed_at = Column(DateTime)
     result = Column(Text)
     undone_at = Column(DateTime)
+
+    __table_args__ = (Index("ix_voice_drafts_committed", "committed_at"),)
 
 
 class TzObservation(Base):
@@ -1301,7 +1315,7 @@ class TzObservation(Base):
     __tablename__ = "tz_observations"
 
     id = Column(Integer, primary_key=True)
-    observed_at = Column(DateTime, nullable=False)       # naive UTC, when the webhook arrived
+    observed_at = Column(DateTime, nullable=False, index=True)  # naive UTC, when the webhook arrived
     utc_offset_min = Column(Integer, nullable=False)     # offset on the newest sample
     latest_sample_utc = Column(DateTime)
     offsets_seen = Column(Text)                          # JSON {offset_min: count}
@@ -1341,7 +1355,7 @@ class ParseJob(Base):
     meal_type = Column(String, nullable=False)
     log_date = Column(Date, nullable=False)
     log_time = Column(String)                      # "HH:MM" or NULL (meal default)
-    status = Column(String, nullable=False, default="pending")  # pending|done|error|saved|dismissed
+    status = Column(String, nullable=False, default="pending", index=True)  # pending|done|error|saved|dismissed
     result = Column(Text)                          # JSON — the /parse response
     error = Column(Text)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -1361,3 +1375,31 @@ class CitationCheck(Base):
     retried = Column(Boolean, default=False)
     bad_final = Column(Text)                       # JSON list — still unsupported when stored
     error = Column(Text)
+
+
+class IdempotencyKey(Base):
+    """A stored response for an Idempotency-Key (Alembic 0077). Read and written with raw
+    SQL in app/idempotency.py; declared here so `alembic check` sees the whole schema."""
+    __tablename__ = "idempotency_keys"
+
+    key = Column(String, primary_key=True)
+    path = Column(String)
+    status = Column(Integer, nullable=False)
+    body = Column(Text)
+    content_type = Column(String)
+    created_at = Column(DateTime, nullable=False)
+
+
+class ErrorEvent(Base):
+    """ERROR log lines counted per kind per day (Alembic 0078). Read and written with raw
+    SQL in app/error_ledger.py; declared here so `alembic check` sees the whole schema."""
+    __tablename__ = "error_events"
+
+    key = Column(String, primary_key=True)
+    day = Column(String, primary_key=True)
+    logger = Column(String)
+    template = Column(Text)
+    sample = Column(Text)
+    count = Column(Integer, nullable=False, server_default="0")
+    first_at = Column(DateTime)
+    last_at = Column(DateTime)

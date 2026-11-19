@@ -9,7 +9,8 @@ Tests:
   b) False-positive rate: 300 independent φ=0.85 AR(1) pairs. Naive n gives ~40%
      FPR at α=0.05; corrected n_eff should be near 5%.
 
-  c) Spearman vs Pearson on y = x³ + noise with bootstrap CIs.
+  c) Spearman on y = x³ + noise with bootstrap CIs: rank invariance under a monotone
+     transform, robustness to a single outlier, and a CI that excludes 0.
 
   d) Real-data regression: recompute all correlations old-vs-new, print diff table.
 
@@ -210,16 +211,35 @@ def test_nonlinear_spearman():
     print(f"    p_value={p_val:.4f}  n_eff={n_eff}  CI=[{ci_low:.3f}, {ci_high:.3f}]")
     print(f"  Bootstrap Spearman 95% CI: [{boot_lo:.3f}, {boot_hi:.3f}]")
 
-    # Spearman should be stronger than Pearson for cubic relationship
-    spearman_stronger = abs(r_spearman) > abs(r_pearson) - 0.05
+    # This used to require |ρ| > |r| - 0.05 here. That is not a property of either
+    # statistic: x³ of a normal x is heavy-tailed, the few large-|x| points carry a strong
+    # signal against constant noise, and Pearson weights exactly those points — on this
+    # seed r = 0.71 vs ρ = 0.60. What the engine relies on Spearman for is checked instead:
+    # (1) RANK INVARIANCE — any monotone transform of y leaves ρ unchanged; r moves.
+    y_mono = [math.copysign(abs(v) ** 0.2, v) for v in y]       # strictly increasing in y
+    r_s_mono = float(scipy_stats.spearmanr(x, y_mono)[0])
+    r_p_mono = float(scipy_stats.pearsonr(x, y_mono)[0])
+    rank_invariant = abs(r_s_mono - float(r_s_naive)) < 1e-12
+    # (2) OUTLIER ROBUSTNESS — one extreme point added to an INDEPENDENT pair inflates r,
+    # not ρ (one hard night or one mis-logged day is the realistic case).
+    rng2 = random.Random(11)
+    xi_ = [rng2.gauss(0, 1) for _ in range(n)] + [12.0]
+    yi_ = [rng2.gauss(0, 1) for _ in range(n)] + [12.0]
+    r_p_out = float(scipy_stats.pearsonr(xi_, yi_)[0])
+    r_s_out = float(scipy_stats.spearmanr(xi_, yi_)[0])
+    robust = abs(r_s_out) < 0.15 and abs(r_p_out) > 0.3
     ci_excludes_zero = not (ci_low <= 0 <= ci_high)
     boot_excludes_zero = not (boot_lo <= 0 <= boot_hi)
 
-    print(f"  Spearman stronger than Pearson: {'YES' if spearman_stronger else 'NO (unexpected)'}")
+    print(f"  Monotone transform of y: ρ {float(r_s_naive):+.3f} → {r_s_mono:+.3f}, "
+          f"r {float(r_p_naive):+.3f} → {r_p_mono:+.3f}  "
+          f"{'[OK] ρ unchanged' if rank_invariant else '[FAIL] ρ changed'}")
+    print(f"  Independent pair + one outlier: ρ {r_s_out:+.3f}, r {r_p_out:+.3f}  "
+          f"{'[OK] ρ unmoved, r inflated' if robust else '[FAIL]'}")
     print(f"  Parametric CI excludes 0:  {'YES' if ci_excludes_zero else 'NO'}")
     print(f"  Bootstrap CI excludes 0:   {'YES' if boot_excludes_zero else 'NO'}")
 
-    return spearman_stronger and ci_excludes_zero
+    return rank_invariant and robust and ci_excludes_zero
 
 
 # ── Task (d): Real-data regression check ──────────────────────────────────────

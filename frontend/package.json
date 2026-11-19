@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src/",
-    "test": "node --test tests/offline.test.mjs"
+    "test": "node --test tests/offline.test.mjs && npm run verify:flag-bands --silent",
+    "verify:flag-bands": "esbuild tests/verify_flag_bands.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --log-level=warning --outfile=node_modules/.cache/verify_flag_bands.mjs && node node_modules/.cache/verify_flag_bands.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
