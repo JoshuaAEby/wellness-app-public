@@ -1,0 +1,25 @@
+services:
+  wellness-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wellness-app
+    restart: unless-stopped
+    ports:
+      - "8093:8093"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=sqlite:////data/wellness.db
+    volumes:
+      - wellness_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8093/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  wellness_data:
+    name: wellness_data

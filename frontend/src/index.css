@@ -1,0 +1,111 @@
+/* Self-hosted so the PWA renders correctly on the LAN with no internet. */
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design tokens.
+
+   Before this, chart and card colours were 646 hardcoded hex literals across 45
+   distinct values, with no rule for what any of them meant — #f59e0b was
+   simultaneously the weight trend line, the calorie goal, a changepoint band and
+   a warning label. These tokens split that into two independent channels:
+
+     SURFACE / INK  — structure. How far forward something sits.
+     STATE          — meaning. over/under are the ONLY judgement colours.
+     SERIES         — identity. A series colour never encodes good or bad.
+
+   A metric's sentiment is carried by state tokens, a glow, or a badge — never by
+   changing its series hue, so "which line is this" and "is this good" stop
+   competing for the same channel.
+
+   Ported from the design mockups. Dark-only by design (matches the app).
+   ──────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Structure */
+  --canvas:  #070A0E;   /* page plane, behind everything */
+  --card:    #0E141C;   /* card surface */
+  --surface: #151D27;   /* recessed well inside a card: unfilled tracks, chips */
+  --rule:    #1E2A37;   /* hairlines, gridlines, borders */
+
+  /* Ink, in decreasing prominence */
+  --ink:   #E8EFF7;
+  --ink-2: #8C9CAE;
+  --ink-3: #546375;
+
+  /* State — reserved. Never used as a series colour. */
+  --over:  #E2574C;     /* above the range that matters / surplus / alarm */
+  --under: #7E93AB;     /* below the range that matters / deficit */
+
+  /* Series identity */
+  --hrv:   #5B9FD4;
+  --rhr:   #4FB286;
+  --slp:   #8E7CC8;
+  --burn:  #8E7CC8;
+
+  /* Sleep stages */
+  --deep:  #2F4C86;
+  --core:  #6E9AE0;
+  --rem:   #A78BD4;
+  --awake: #39434F;
+
+  /* Meal buckets — match /api/nutrition/daily-breakdown's five keys.
+     `other` is the app's `snack` tag, NOT untagged data (meal_type is never null). */
+  --breakfast: #E9A13B;
+  --lunch:     #4FB286;
+  --dinner:    #5B7FD4;
+  --drinks:    #4C7A8C;
+  --other:     #5A6472;
+  --dessert:   #C46BAE;
+
+  /* Food-composition components. Hues and THIS ORDER come from a validated
+     categorical palette: on the card surface all 8 clear the lightness band, the
+     chroma floor, adjacent-pair colour-vision separation (worst 8.4 dE, protan)
+     and 3:1 contrast. The order is part of the result — it is the sequence that
+     passes, so the render order must match COMPONENT_ORDER in food_tags.py.
+     Reordering the legend or the stack without re-running the validator can put
+     two hues a colourblind reader cannot separate side by side.
+     `--food-other` is deliberately a neutral, not a 9th hue. */
+  --food-dairy:         #3987E5;
+  --food-grain:         #D95926;
+  --food-veg:           #199E70;
+  --food-fat:           #C98500;
+  --food-fruit:         #D55181;
+  --food-plantprotein:  #008300;
+  --food-sugar:         #9085E9;
+  --food-animalprotein: #E66767;
+  --food-other:         #5A6472;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prose opts OUT of the mono/tabular default. Numbers stay mono so columns and
+   axis ticks align; sentences get a proportional face so they read as sentences. */
+.prose-ui {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-variant-numeric: normal;
+}
+
+/* Chart markers are tappable (note 39, 2026-09-15). The line's hover dot and tooltip
+   cursor are drawn ABOVE the reference-line layer, so on a tap — whose mousemove makes
+   the dot appear under the finger — they swallowed the marker's click whenever the
+   series passed near the top of the chart. Neither needs to receive clicks. */
+.recharts-active-dot,
+.recharts-tooltip-cursor { pointer-events: none; }
+/* Recharts 3 makes an inner chart layer focusable (g.recharts-zIndex-layer_*); a tap
+   then drew a focus ring around the whole plot. Keyboard focus keeps its ring. */
+.recharts-wrapper :focus:not(:focus-visible),
+.recharts-wrapper:focus:not(:focus-visible) { outline: none; }

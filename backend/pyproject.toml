@@ -1,0 +1,36 @@
+[project]
+name = "wellness-app-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.20.0",
+    "alembic>=1.13.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.9",
+    "pydantic-settings>=2.3.0",
+    "apscheduler>=3.10.0,<4.0",
+    "python-dateutil>=2.9.0",
+    "httpx>=0.27.0",
+    # Upper bound is load-bearing. This was `>=0.25.0`, and because the Dockerfile
+    # resolves dependencies fresh on every `--build`, a routine rebuild on
+    # 2026-08-25 pulled anthropic 1.0.0 — which removed temperature/top_p/top_k
+    # from messages.create() — and food parsing started returning 503 with
+    # "unexpected keyword argument 'temperature'". Nothing in the app changed.
+    # Every other pin here is also unbounded and can break the same way; a
+    # lockfile is the real fix. See Open Issues.
+    "anthropic>=1,<2",
+    "scipy>=1.11",
+    "statsmodels>=0.14",
+    "pypdf>=4.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
